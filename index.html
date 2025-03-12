@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>センサーデータ取得と保存</title>
+  <title>センサーデータ取得</title>
   <style>
     body {
       font-family: sans-serif;
@@ -17,40 +16,59 @@
       border-radius: 5px;
       white-space: pre-wrap;
     }
+
+    #status {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #f0f0f0;
+      border-radius: 5px;
+    }
+
+    .success {
+      color: green;
+    }
+
+    .error {
+      color: red;
+    }
   </style>
 </head>
 
 <body>
-  <h1>センサーデータ取得と保存</h1>
+  <h1>スマホセンサー取得</h1>
   <button id="startButton">センサー取得開始</button>
   <pre id="output">ここにセンサー情報が表示されます。</pre>
 
-  <script>
-    const output = document.getElementById("output");
-    let lastAcc = null;
-    let lastRotRate = null;
+  <div id="status" class="success">状態: 待機中...</div> <!-- 状態表示エリア -->
 
-    // データをサーバーに送信する関数
-    function sendDataToServer(acc, rotRate) {
-      fetch('http://127.0.0.1:5000/save_data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+  <script>
+    // 送信する関数（500msごと）
+    function sendData(acc, rotRate) {
+      fetch("http://127.0.0.1:5000/save_data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           timestamp: Date.now(),
           acceleration: acc,
           rotation: rotRate
         })
       })
-        .then(response => response.json())
+        .then(response => response.json()) // レスポンスをJSONとして解釈
         .then(data => {
-          console.log(data);
-          output.textContent = `データがサーバーに保存されました: ${JSON.stringify(data)}`;
+          // 成功時の処理
+          document.getElementById("status").textContent = "状態: データ送信成功!";
+          document.getElementById("status").className = "success"; // 成功のスタイル
         })
         .catch(error => {
-          console.error('エラー:', error);
-          output.textContent = `エラー: ${error}`;
+          // 失敗時の処理
+          document.getElementById("status").textContent = "状態: データ送信失敗!";
+          document.getElementById("status").className = "error"; // 失敗のスタイル
         });
     }
+
+    const output = document.getElementById("output");
+    let lastAcc = null;
+    let lastRotRate = null;
 
     function handleMotion(event) {
       const acc = event.accelerationIncludingGravity;
@@ -92,12 +110,12 @@ gamma (Y): ${rotRate.gamma?.toFixed(2)} °/s`;
     }
 
     function startSendingData() {
-      // 1000ms（1秒）ごとにデータをサーバーに送信
+      // 500msごとに送信
       setInterval(() => {
         if (lastAcc && lastRotRate) {
-          sendDataToServer(lastAcc, lastRotRate);
+          sendData(lastAcc, lastRotRate);
         }
-      }, 1000);  // 1秒ごとにデータ送信
+      }, 500);  // 500msごとにデータ送信
     }
 
     document.getElementById('startButton').addEventListener('click', startSensors);

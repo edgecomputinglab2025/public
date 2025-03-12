@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
 import json
+from flask_cors import CORS  # CORSをインポート
 
 app = Flask(__name__)
+CORS(app)  # これで全てのオリジンからのアクセスを許可
 
 @app.route('/save_data', methods=['POST'])
 def save_data():
