@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <title>センサーデータ取得</title>
@@ -8,6 +9,7 @@
       font-family: sans-serif;
       padding: 20px;
     }
+
     pre {
       background: #f4f4f4;
       padding: 10px;
@@ -16,17 +18,37 @@
     }
   </style>
 </head>
+
 <body>
   <h1>スマホセンサー取得</h1>
   <button id="startButton">センサー取得開始</button>
   <pre id="output">ここにセンサー情報が表示されます。</pre>
 
   <script>
+    // 送信する関数（500msごと）
+    function sendData(acc, rotRate) {
+      fetch("http://127.0.0.1:5000/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          timestamp: Date.now(),
+          acceleration: acc,
+          rotation: rotRate
+        })
+      });
+    }
+
     const output = document.getElementById("output");
+    let lastAcc = null;
+    let lastRotRate = null;
 
     function handleMotion(event) {
       const acc = event.accelerationIncludingGravity;
       const rotRate = event.rotationRate;
+
+      // センサーのデータを保存（最後に取得したデータを送信する）
+      lastAcc = acc;
+      lastRotRate = rotRate;
 
       const accText = `【加速度】
 X: ${acc.x?.toFixed(2)} m/s²
@@ -47,6 +69,7 @@ gamma (Y): ${rotRate.gamma?.toFixed(2)} °/s`;
         DeviceMotionEvent.requestPermission().then(permissionState => {
           if (permissionState === 'granted') {
             window.addEventListener('devicemotion', handleMotion);
+            startSendingData();  // センサー開始後、データ送信をスタート
           } else {
             alert("センサーの使用が許可されていません。");
           }
@@ -54,10 +77,21 @@ gamma (Y): ${rotRate.gamma?.toFixed(2)} °/s`;
       } else {
         // Androidなど通常ブラウザ
         window.addEventListener('devicemotion', handleMotion);
+        startSendingData();  // センサー開始後、データ送信をスタート
       }
+    }
+
+    function startSendingData() {
+      // 500msごとに送信
+      setInterval(() => {
+        if (lastAcc && lastRotRate) {
+          sendData(lastAcc, lastRotRate);
+        }
+      }, 100);  // 500msごとにデータ送信
     }
 
     document.getElementById('startButton').addEventListener('click', startSensors);
   </script>
 </body>
+
 </html>
